@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@RequestMapping("/whatsapp")
+@RequestMapping("/webhook")
 public class WhatsAppWebhookController {
 
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
@@ -30,7 +30,7 @@ public class WhatsAppWebhookController {
     private TokenSessionRepository tokenSessionRepository;
 
     // 1. Vérification du webhook par Meta (GET)
-    @GetMapping("/webhook")
+    @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
             @RequestParam("hub.mode") String mode,
             @RequestParam("hub.challenge") String challenge,
@@ -44,7 +44,7 @@ public class WhatsAppWebhookController {
     }
 
     // 2. Réception des messages WhatsApp (POST)
-    @PostMapping("/webhook")
+    @PostMapping("/whatsapp")
     public ResponseEntity<?> receiveWhatsAppEvent(@RequestBody Map<String, Object> payload) {
         try {
             // 1. Extraire le numéro WhatsApp de l'utilisateur (from)
