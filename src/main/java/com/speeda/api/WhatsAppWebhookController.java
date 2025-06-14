@@ -1,8 +1,7 @@
 package com.speeda.api;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +13,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -43,7 +43,6 @@ public class WhatsAppWebhookController {
         }
     }
 
-    // 2. Réception des messages WhatsApp (POST)
     @PostMapping("/whatsapp")
     public ResponseEntity<?> receiveWhatsAppEvent(@RequestBody Map<String, Object> payload) {
         try {
@@ -64,7 +63,7 @@ public class WhatsAppWebhookController {
 
             User user = userOpt.get();
 
-            // 3. (Exemple) Vérifier si le user a un token actif (selon ta logique)
+            // 3. Vérifier si le user a un token actif
             boolean hasValidToken = user.getTokenSessions().stream()
                     .anyMatch(token -> "ACTIVE".equals(token.getStatus()) && token.getExpiresAt().after(new Date()));
 
@@ -74,8 +73,24 @@ public class WhatsAppWebhookController {
             }
 
             // 4. Succès : user existe et token valide
-            System.out.println("Utilisateur authentifié : " + phoneNumber);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "user authentifié"));
+            System.out.println("✅ Utilisateur authentifié : " + phoneNumber);
+
+            // 5. Relai du payload vers n8n webhook
+            try {
+                String n8nWebhookUrl = "https://n8n.speeda.ai/webhook-test/eb2857a5-978b-4466-9f79-a06566340a56";
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+                restTemplate.postForEntity(n8nWebhookUrl, request, String.class);
+
+                System.out.println("📤 Payload relayed to n8n");
+            } catch (Exception n8nError) {
+                System.err.println("⚠️ Erreur en relayant vers n8n : " + n8nError.getMessage());
+            }
+
+            return ResponseEntity.ok(Map.of("status", "success", "message", "user authentifié + relayé"));
 
         } catch (Exception e) {
             e.printStackTrace();
