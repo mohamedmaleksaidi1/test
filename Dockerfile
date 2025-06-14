@@ -1,14 +1,12 @@
-# Utilise l'image officielle Java 21 JDK
-FROM eclipse-temurin:21-jdk
-
-# Crée un dossier pour ton app dans le conteneur
+# Étape 1 : Build Maven
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
+COPY . .
+RUN ./mvnw clean package -DskipTests
 
-# Copie ton fichier .jar (généré par Maven ou Gradle)
-COPY target/*.jar app.jar
-
-# Ouvre le port utilisé par Spring Boot (par défaut 8080)
+# Étape 2 : Run Spring Boot App
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-
-# Commande pour démarrer ton application
 ENTRYPOINT ["java", "-jar", "app.jar"]
