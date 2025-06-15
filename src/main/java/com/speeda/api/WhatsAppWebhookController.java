@@ -30,7 +30,7 @@ public class WhatsAppWebhookController {
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
     private static final String ACCESS_TOKEN = "EAAkTQAndy9EBOxzVcmfNkLUjxRsTChjBinuPyq4ZA9LsvyZBl1muAAd1fwBnCcnF8KjZAjsaTJl4alAjrpAs1gZAgKYlAyrKN6HEx6SGyhZBH6adR0FOMz8oYSZB49teZC76TXqH13lI2T9abuXMH7ZB0Jd9WfIfHQrAoul63oqUjTcZBay3zZC2giPZBDuuZAtAPzNlxgZA6cDbTJVNW5zYJesgAqKFoZB52EtElcArMZD";
     private static final String PHONE_NUMBER_ID = "480664495133441";
-    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook/2c67be06-d34f-4a0b-b16e-a6938a1fa77f";
+    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
 
     private final RestTemplate restTemplate = new RestTemplate();
 
