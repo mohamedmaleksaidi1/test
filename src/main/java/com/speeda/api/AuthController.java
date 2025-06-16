@@ -1,6 +1,7 @@
 package com.speeda.api;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,12 +14,26 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-
+    @Autowired
+    private UserRepository userRepository;
     private final AuthService authService;
-
+    private final JwtUtil jwtUtil;
+    private final TokenSessionRepository tokenSessionRepository;
+    private void saveTokenSession(User user, String token, String type, Date expiresAt) {
+        TokenSession session = new TokenSession();
+        session.setUser(user);
+        session.setToken(token);
+        session.setType(type);
+        session.setCreatedAt(new Date());
+        session.setExpiresAt(expiresAt);
+        session.setStatus("ACTIVE");
+        tokenSessionRepository.save(session);
+    }
     // --- Constructeur pour l'injection de dépendance ---
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil, TokenSessionRepository tokenSessionRepository) {
         this.authService = authService;
+        this.jwtUtil = jwtUtil;
+        this.tokenSessionRepository = tokenSessionRepository;
     }
 
     @PostMapping("/register")
