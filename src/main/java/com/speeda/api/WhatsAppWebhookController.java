@@ -17,12 +17,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
-
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.*;
 @RestController
 @RequestMapping("/webhook")
 public class WhatsAppWebhookController {
@@ -31,6 +25,9 @@ public class WhatsAppWebhookController {
     private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
 
     private final RestTemplate restTemplate = new RestTemplate();
+
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
@@ -53,15 +50,36 @@ public class WhatsAppWebhookController {
                 return;
             }
 
-            System.out.println("📥 Message reçu : " + message + " de " + phoneNumber);
+            String statut;
 
-            // Appel vers n8n pour traitement AI uniquement
+            // 🔎 Recherche de l'utilisateur
+            Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+            if (userOpt.isEmpty()) {
+                statut = "user non enregistré";
+            } else {
+                User user = userOpt.get();
+                boolean hasValidToken = user.getTokenSessions().stream()
+                        .anyMatch(token ->
+                                "ACTIVE".equals(token.getStatus()) &&
+                                        token.getExpiresAt() != null &&
+                                        token.getExpiresAt().after(new Date())
+                        );
+
+                statut = hasValidToken ? "succès" : "échec : session expirée";
+            }
+
+            System.out.println("📥 Message : " + message);
+            System.out.println("📞 Numéro  : " + phoneNumber);
+            System.out.println("✅ Statut  : " + statut);
+
+            // 🚀 Envoi vers n8n
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> toSend = Map.of(
                     "phone", phoneNumber,
-                    "message", message
+                    "message", message,
+                    "statut", statut
             );
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
