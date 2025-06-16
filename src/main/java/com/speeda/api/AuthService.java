@@ -88,6 +88,7 @@ public class AuthService {
         TokenSession session = new TokenSession();
         session.setUser(user);
         session.setToken(token);
+        session.setType(type);
         session.setCreatedAt(new Date());
         session.setExpiresAt(expiresAt);
         tokenSessionRepository.save(session);
