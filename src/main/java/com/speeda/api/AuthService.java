@@ -83,33 +83,32 @@ public class AuthService {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshAccessToken(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
+    public ResponseEntity<?> refreshAccessTokenByPhone(@RequestBody Map<String, String> request) {
+        String phone = request.get("phone");
 
-        try {
-            String username = jwtUtil.extractUsername(refreshToken);
-
-            if (jwtUtil.isTokenExpired(refreshToken)) {
-                return ResponseEntity.status(401).body(Map.of("error", "Refresh token expiré"));
-            }
-
-            // Vérifier que le refresh token est en BDD et actif
-            Optional<TokenSession> sessionOpt = tokenSessionRepository.findByToken(refreshToken);
-            if (sessionOpt.isEmpty() || !"ACTIVE".equals(sessionOpt.get().getStatus())) {
-                return ResponseEntity.status(403).body(Map.of("error", "Token non valide ou révoqué"));
-            }
-
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-            String newAccessToken = jwtUtil.generateAccessToken(username);
-            saveTokenSession(user, newAccessToken, "access", jwtUtil.extractExpiration(newAccessToken));
-
-            return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(Map.of("error", "Refresh token invalide"));
+        Optional<User> userOpt = userRepository.findByPhoneNumber(phone);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Utilisateur non trouvé"));
         }
+
+        User user = userOpt.get();
+
+        // Trouver un refresh token actif et non expiré
+        Optional<TokenSession> refreshTokenOpt = user.getTokenSessions().stream()
+                .filter(t -> "refresh".equalsIgnoreCase(t.getType()))
+                .filter(t -> "ACTIVE".equalsIgnoreCase(t.getStatus()))
+                .filter(t -> t.getExpiresAt() != null && t.getExpiresAt().after(new Date()))
+                .findFirst();
+
+        if (refreshTokenOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Aucun refresh token valide trouvé"));
+        }
+
+        // Générer nouveau access token
+        String newAccessToken = jwtUtil.generateAccessToken(user.getUsername());
+        saveTokenSession(user, newAccessToken, "access", jwtUtil.extractExpiration(newAccessToken));
+
+        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
 
 
