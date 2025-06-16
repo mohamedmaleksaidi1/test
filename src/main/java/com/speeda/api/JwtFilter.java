@@ -53,13 +53,11 @@ public class JwtFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
-        // 🔍 Extraire le JWT
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(jwt);
 
-                // ⛔ Si le token est expiré → mettre à jour la BDD
                 if (jwtUtil.isTokenExpired(jwt)) {
                     Optional<TokenSession> sessionOpt = tokenSessionRepository.findByToken(jwt);
                     if (sessionOpt.isPresent()) {

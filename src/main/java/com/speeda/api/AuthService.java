@@ -1,13 +1,19 @@
 package com.speeda.api;
 
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
 
 
 @Service
@@ -75,6 +81,38 @@ public class AuthService {
 
         return new AuthResponse(accessToken, refreshToken);
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshAccessToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+
+        try {
+            String username = jwtUtil.extractUsername(refreshToken);
+
+            if (jwtUtil.isTokenExpired(refreshToken)) {
+                return ResponseEntity.status(401).body(Map.of("error", "Refresh token expiré"));
+            }
+
+            // Vérifier que le refresh token est en BDD et actif
+            Optional<TokenSession> sessionOpt = tokenSessionRepository.findByToken(refreshToken);
+            if (sessionOpt.isEmpty() || !"ACTIVE".equals(sessionOpt.get().getStatus())) {
+                return ResponseEntity.status(403).body(Map.of("error", "Token non valide ou révoqué"));
+            }
+
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+            String newAccessToken = jwtUtil.generateAccessToken(username);
+            saveTokenSession(user, newAccessToken, "access", jwtUtil.extractExpiration(newAccessToken));
+
+            return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Refresh token invalide"));
+        }
+    }
+
+
 
     private void saveTokenSession(User user, String token, String type, Date expiresAt) {
         TokenSession session = new TokenSession();

@@ -51,35 +51,50 @@ public class WhatsAppWebhookController {
             }
 
             String statut;
+            String etatToken = "aucun";
 
-            // 🔎 Recherche de l'utilisateur
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
             if (userOpt.isEmpty()) {
                 statut = "user non enregistré";
             } else {
                 User user = userOpt.get();
-                boolean hasValidToken = user.getTokenSessions().stream()
-                        .anyMatch(token ->
-                                "ACTIVE".equals(token.getStatus()) &&
-                                        token.getExpiresAt() != null &&
-                                        token.getExpiresAt().after(new Date())
-                        );
 
-                statut = hasValidToken ? "succès" : "échec : session expirée";
+                // On récupère le dernier token actif, s’il y en a
+                Optional<TokenSession> tokenActifOpt = user.getTokenSessions().stream()
+                        .filter(t -> "ACTIVE".equals(t.getStatus()))
+                        .sorted(Comparator.comparing(TokenSession::getCreatedAt).reversed())
+                        .findFirst();
+
+                if (tokenActifOpt.isEmpty()) {
+                    statut = "échec : session expirée";
+                } else {
+                    TokenSession token = tokenActifOpt.get();
+                    Date now = new Date();
+
+                    if (token.getExpiresAt() != null && token.getExpiresAt().after(now)) {
+                        statut = "succès";
+                        etatToken = "ACTIVE";
+                    } else {
+                        statut = "échec : session expirée";
+                        etatToken = "EXPIRED";
+                    }
+                }
             }
 
-            System.out.println("📥 Message : " + message);
-            System.out.println("📞 Numéro  : " + phoneNumber);
-            System.out.println("✅ Statut  : " + statut);
+            System.out.println(" Message : " + message);
+            System.out.println(" Numéro  : " + phoneNumber);
+            System.out.println(" Statut  : " + statut);
+            System.out.println(" État Token : " + etatToken);
 
-            // 🚀 Envoi vers n8n
+            // 🔁 Envoi vers n8n
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> toSend = Map.of(
                     "phone", phoneNumber,
                     "message", message,
-                    "statut", statut
+                    "statut", statut,
+                    "etat_token", etatToken
             );
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
