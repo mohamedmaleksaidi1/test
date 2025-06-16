@@ -15,7 +15,7 @@ import java.util.Date;
 import java.util.function.Function;
 @Component
 public class JwtUtil {
-    private final int accessTokenExpirationMs = 15 * 60 * 1000;    // 15 min
+    private final int accessTokenExpirationMs = 5 * 60 * 1000; // 5 minutes
     private final int refreshTokenExpirationMs = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
     private final String jwtSecret = "QkXNd6HW!kF4v9atJ3uV2mSG8zLp5xAhBt6PfR0sWyZcEg7qL1jUoNiVrXsTbQeY"; // 64 caractères !
@@ -67,7 +67,7 @@ public class JwtUtil {
         return (usernameFromToken.equals(username) && !isTokenExpired(token));
     }
 
-    private boolean isTokenExpired(String token) {
+    boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 }
