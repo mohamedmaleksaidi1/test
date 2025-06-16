@@ -58,16 +58,9 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 username = jwtUtil.extractUsername(jwt);
 
+
                 if (jwtUtil.isTokenExpired(jwt)) {
-                    Optional<TokenSession> sessionOpt = tokenSessionRepository.findByToken(jwt);
-                    if (sessionOpt.isPresent()) {
-                        TokenSession session = sessionOpt.get();
-                        if ("ACTIVE".equals(session.getStatus())) {
-                            session.setStatus("EXPIRED");
-                            tokenSessionRepository.save(session);
-                            System.out.println("🕒 Token expiré marqué comme EXPIRED pour " + username);
-                        }
-                    }
+                    System.out.println("🕒 Token expiré pour : " + username);
                 }
 
             } catch (Exception e) {
@@ -91,4 +84,5 @@ public class JwtFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
+
 }

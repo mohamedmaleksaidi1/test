@@ -18,7 +18,6 @@ public class TokenSession {
     private String type; // "access" ou "refresh"
     private Date createdAt;
     private Date expiresAt;
-    private String status; // "ACTIVE", "REVOKED", etc.
 
     // (optionnel) : IP, user-agent, etc.
 
@@ -34,6 +33,4 @@ public class TokenSession {
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public Date getExpiresAt() { return expiresAt; }
     public void setExpiresAt(Date expiresAt) { this.expiresAt = expiresAt; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }

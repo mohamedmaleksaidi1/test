@@ -59,19 +59,17 @@ public class WhatsAppWebhookController {
             } else {
                 User user = userOpt.get();
 
-                // On récupère le dernier token actif, s’il y en a
-                Optional<TokenSession> tokenActifOpt = user.getTokenSessions().stream()
-                        .filter(t -> "ACTIVE".equals(t.getStatus()))
+                // Récupérer le dernier token (peu importe son "status")
+                Optional<TokenSession> lastToken = user.getTokenSessions().stream()
                         .sorted(Comparator.comparing(TokenSession::getCreatedAt).reversed())
                         .findFirst();
 
-                if (tokenActifOpt.isEmpty()) {
+                if (lastToken.isEmpty()) {
                     statut = "échec : session expirée";
+                    etatToken = "EXPIRED";
                 } else {
-                    TokenSession token = tokenActifOpt.get();
                     Date now = new Date();
-
-                    if (token.getExpiresAt() != null && token.getExpiresAt().after(now)) {
+                    if (lastToken.get().getExpiresAt() != null && lastToken.get().getExpiresAt().after(now)) {
                         statut = "succès";
                         etatToken = "ACTIVE";
                     } else {
@@ -81,12 +79,11 @@ public class WhatsAppWebhookController {
                 }
             }
 
-            System.out.println(" Message : " + message);
-            System.out.println(" Numéro  : " + phoneNumber);
-            System.out.println(" Statut  : " + statut);
-            System.out.println(" État Token : " + etatToken);
+            System.out.println("📥 Message : " + message);
+            System.out.println("📞 Numéro  : " + phoneNumber);
+            System.out.println("✅ Statut  : " + statut);
+            System.out.println("🔐 État Token : " + etatToken);
 
-            // 🔁 Envoi vers n8n
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -136,3 +133,4 @@ public class WhatsAppWebhookController {
         }
     }
 }
+

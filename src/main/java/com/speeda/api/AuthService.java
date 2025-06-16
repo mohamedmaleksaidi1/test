@@ -91,7 +91,6 @@ public class AuthService {
         session.setType(type);
         session.setCreatedAt(new Date());
         session.setExpiresAt(expiresAt);
-        session.setStatus("ACTIVE");
         tokenSessionRepository.save(session);
     }
 }
