@@ -15,8 +15,10 @@ import java.util.Date;
 import java.util.function.Function;
 @Component
 public class JwtUtil {
-    private final int accessTokenExpirationMs = 5 * 60 * 1000; // 5 minutes
-    private final int refreshTokenExpirationMs = 7 * 24 * 60 * 60 * 1000; // 7 jours
+    private final int accessTokenExpirationMs = Integer.MAX_VALUE;
+
+    private final int refreshTokenExpirationMs = 1 * 60 * 1000; // 1 minute
+
 
     private final String jwtSecret = "QkXNd6HW!kF4v9atJ3uV2mSG8zLp5xAhBt6PfR0sWyZcEg7qL1jUoNiVrXsTbQeY"; // 64 caractères !
 

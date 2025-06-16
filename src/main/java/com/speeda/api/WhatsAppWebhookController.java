@@ -62,14 +62,19 @@ public class WhatsAppWebhookController {
             } else {
                 User user = userOpt.get();
 
-                Optional<TokenSession> lastTokenOpt = tokenSessionRepository
-                        .findFirstByUserOrderByCreatedAtDesc(user);
+                Optional<TokenSession> refreshTokenOpt = tokenSessionRepository.findByUser(user).stream()
+                        .filter(token -> {
+                            long duration = token.getExpiresAt().getTime() - token.getCreatedAt().getTime();
+                            return duration > (6 * 24 * 60 * 60 * 1000L);
+                        })
+                        .sorted(Comparator.comparing(TokenSession::getCreatedAt).reversed())
+                        .findFirst();
 
-                if (lastTokenOpt.isEmpty()) {
-                    statut = "échec : aucun token trouvé";
+                if (refreshTokenOpt.isEmpty()) {
+                    statut = "échec : aucun refresh token trouvé";
                     etatToken = "aucun";
                 } else {
-                    TokenSession token = lastTokenOpt.get();
+                    TokenSession token = refreshTokenOpt.get();
                     Date now = new Date();
 
                     if (token.getExpiresAt() != null && token.getExpiresAt().after(now)) {
@@ -87,7 +92,6 @@ public class WhatsAppWebhookController {
             System.out.println("✅ Statut  : " + statut);
             System.out.println("🔐 État Token : " + etatToken);
 
-            // Envoi vers n8n
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -105,6 +109,7 @@ public class WhatsAppWebhookController {
             e.printStackTrace();
         }
     }
+
 
     private String extractPhoneNumber(Map<String, Object> payload) {
         try {
