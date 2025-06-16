@@ -38,21 +38,9 @@ public class AuthController {
     }
 
 
-    @RestController
-    @RequestMapping("/api/auth")
-    public class RefreshTokenController {
 
-        @Autowired
-        private UserRepository userRepository;
 
-        @Autowired
-        private TokenSessionRepository tokenSessionRepository;
-
-        @Autowired
-        private JwtUtil jwtUtil;
-
-        // Endpoint POST /api/auth/refresh-token-by-phone
-        @PostMapping("/refresh-token-by-phone")
+        @PostMapping("/refreshToken")
         public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
             String phone = request.get("phone");
             if (phone == null || phone.isBlank()) {
@@ -94,8 +82,12 @@ public class AuthController {
 
             return ResponseEntity.ok(Map.of("refreshToken", newRefreshToken));
         }
+
+
+
+
     }
 
 
-}
+
 
