@@ -29,6 +29,9 @@ public class WhatsAppWebhookController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TokenSessionRepository tokenSessionRepository;
+
     @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
             @RequestParam("hub.mode") String mode,
@@ -59,17 +62,17 @@ public class WhatsAppWebhookController {
             } else {
                 User user = userOpt.get();
 
-                // Récupérer le dernier token (peu importe son "status")
-                Optional<TokenSession> lastToken = user.getTokenSessions().stream()
-                        .sorted(Comparator.comparing(TokenSession::getCreatedAt).reversed())
-                        .findFirst();
+                Optional<TokenSession> lastTokenOpt = tokenSessionRepository
+                        .findFirstByUserOrderByCreatedAtDesc(user);
 
-                if (lastToken.isEmpty()) {
-                    statut = "échec : session expirée";
-                    etatToken = "EXPIRED";
+                if (lastTokenOpt.isEmpty()) {
+                    statut = "échec : aucun token trouvé";
+                    etatToken = "aucun";
                 } else {
+                    TokenSession token = lastTokenOpt.get();
                     Date now = new Date();
-                    if (lastToken.get().getExpiresAt() != null && lastToken.get().getExpiresAt().after(now)) {
+
+                    if (token.getExpiresAt() != null && token.getExpiresAt().after(now)) {
                         statut = "succès";
                         etatToken = "ACTIVE";
                     } else {
@@ -84,6 +87,7 @@ public class WhatsAppWebhookController {
             System.out.println("✅ Statut  : " + statut);
             System.out.println("🔐 État Token : " + etatToken);
 
+            // Envoi vers n8n
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -133,4 +137,3 @@ public class WhatsAppWebhookController {
         }
     }
 }
-

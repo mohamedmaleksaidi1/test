@@ -5,5 +5,8 @@ import java.util.Optional;
 import java.util.List;
 
 public interface TokenSessionRepository extends JpaRepository<TokenSession, Long> {
+    List<TokenSession> findByUser(User user);
+    Optional<TokenSession> findFirstByUserOrderByCreatedAtDesc(User user);
+
 
 }

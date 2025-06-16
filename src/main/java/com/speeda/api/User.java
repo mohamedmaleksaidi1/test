@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@Table(name = "users") // <-- Ajoute cette ligne
+@Table(name = "users")
 @Entity
 public class User {
 
@@ -21,18 +21,11 @@ public class User {
     @Column(nullable = false)
     private String password;
     @Column(nullable = false)
-    private String phoneNumber; // Nouveau champ
+    private String phoneNumber;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TokenSession> tokenSessions = new ArrayList<>();
 
-    public List<TokenSession> getTokenSessions() {
-        return tokenSessions;
-    }
 
-    public void setTokenSessions(List<TokenSession> tokenSessions) {
-        this.tokenSessions = tokenSessions;
-    }
+
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
