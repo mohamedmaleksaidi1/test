@@ -3,6 +3,7 @@ package com.speeda.Core.service;
 import com.speeda.Core.model.AuthToken;
 import com.speeda.Core.model.User;
 import com.speeda.Core.repository.AuthTokenRepository;
+import com.speeda.Core.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class AuthTokenService implements IAuthTokenService {
     private Long refreshTokenDurationMs;
 
     private final AuthTokenRepository authTokenRepository;
-
+    private final UserRepository userRepository;
     @Override
     @Transactional
     public AuthToken createOrUpdateAuthToken(User user, String accessToken) {
