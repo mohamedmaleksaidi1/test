@@ -68,7 +68,7 @@ public class WhatsAppWebhookController {
                 userExist = true;
                 User user = userOpt.get();
 
-                // Vérif token
+                // Vérification du token
                 Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
                         .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
                         .findFirst();
@@ -80,17 +80,17 @@ public class WhatsAppWebhookController {
                 Optional<Activity> activityOpt = activityRepository.findByUser(user);
                 if (activityOpt.isPresent()) {
                     Activity a = activityOpt.get();
-                    activityData = Map.of(
-                            "businessName", a.getBusinessName(),
-                            "industry", a.getIndustry(),
-                            "businessDescription", a.getBusinessDescription(),
-                            "location", a.getLocation(),
-                            "openingHours", a.getOpeningHours(),
-                            "audienceTarget", a.getAudienceTarget(),
-                            "businessSize", a.getBusinessSize(),
-                            "uniqueSellingPoint", a.getUniqueSellingPoint(),
-                            "yearFounded", a.getYearFounded(),
-                            "certifications", a.getCertifications()
+                    activityData = Map.ofEntries(
+                            Map.entry("businessName", a.getBusinessName()),
+                            Map.entry("industry", a.getIndustry()),
+                            Map.entry("businessDescription", a.getBusinessDescription()),
+                            Map.entry("location", a.getLocation()),
+                            Map.entry("openingHours", a.getOpeningHours()),
+                            Map.entry("audienceTarget", a.getAudienceTarget()),
+                            Map.entry("businessSize", a.getBusinessSize()),
+                            Map.entry("uniqueSellingPoint", a.getUniqueSellingPoint()),
+                            Map.entry("yearFounded", a.getYearFounded()),
+                            Map.entry("certifications", a.getCertifications())
                     );
                 }
 
@@ -111,7 +111,6 @@ public class WhatsAppWebhookController {
                             Map.entry("languagePreference", p.getLanguagePreference()),
                             Map.entry("additionalNotes", p.getAdditionalNotes())
                     );
-
                 }
             }
 
