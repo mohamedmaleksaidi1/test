@@ -30,6 +30,8 @@ public class PreferenceService implements IPreferenceService {
         return preferenceMapper.toDto(preferenceRepository.save(preference));
     }
 
+
+
     @Override
     public PreferenceDTO updatePreference(Long id, PreferenceDTO dto) {
         Long userId = userContext.getCurrentUserId();

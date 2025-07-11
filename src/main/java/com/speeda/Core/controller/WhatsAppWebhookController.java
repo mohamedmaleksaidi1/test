@@ -1,9 +1,14 @@
 package com.speeda.Core.controller;
 
+import com.speeda.Core.model.Activity;
 import com.speeda.Core.model.AuthToken;
+import com.speeda.Core.model.Preference;
 import com.speeda.Core.model.User;
+import com.speeda.Core.repository.ActivityRepository;
 import com.speeda.Core.repository.AuthTokenRepository;
+import com.speeda.Core.repository.PreferenceRepository;
 import com.speeda.Core.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,9 +22,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 @RestController
 @RequestMapping("/webhook")
+@RequiredArgsConstructor
 public class WhatsAppWebhookController {
 
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
@@ -27,11 +32,10 @@ public class WhatsAppWebhookController {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private AuthTokenRepository authTokenRepository;
+    private final UserRepository userRepository;
+    private final AuthTokenRepository authTokenRepository;
+    private final ActivityRepository activityRepository;
+    private final PreferenceRepository preferenceRepository;
 
     @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
@@ -56,19 +60,58 @@ public class WhatsAppWebhookController {
 
             boolean userExist = false;
             boolean tokenValide = false;
+            Map<String, Object> activityData = null;
+            Map<String, Object> preferenceData = null;
 
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
             if (userOpt.isPresent()) {
                 userExist = true;
                 User user = userOpt.get();
 
-                // Vérifier le token
+                // Vérif token
                 Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
                         .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
                         .findFirst();
-
                 if (lastToken.isPresent()) {
                     tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
+                }
+
+                // Récupération activité
+                Optional<Activity> activityOpt = activityRepository.findByUser(user);
+                if (activityOpt.isPresent()) {
+                    Activity a = activityOpt.get();
+                    activityData = Map.of(
+                            "businessName", a.getBusinessName(),
+                            "industry", a.getIndustry(),
+                            "businessDescription", a.getBusinessDescription(),
+                            "location", a.getLocation(),
+                            "openingHours", a.getOpeningHours(),
+                            "audienceTarget", a.getAudienceTarget(),
+                            "businessSize", a.getBusinessSize(),
+                            "uniqueSellingPoint", a.getUniqueSellingPoint(),
+                            "yearFounded", a.getYearFounded(),
+                            "certifications", a.getCertifications()
+                    );
+                }
+
+                // Récupération préférence
+                Optional<Preference> prefOpt = preferenceRepository.findByUser(user);
+                if (prefOpt.isPresent()) {
+                    Preference p = prefOpt.get();
+                    preferenceData = Map.ofEntries(
+                            Map.entry("toneOfVoice", p.getToneOfVoice()),
+                            Map.entry("socialMediaGoals", p.getSocialMediaGoals()),
+                            Map.entry("preferredPlatforms", p.getPreferredPlatforms()),
+                            Map.entry("postingFrequency", p.getPostingFrequency()),
+                            Map.entry("preferredPostTime", p.getPreferredPostTime()),
+                            Map.entry("visualStyle", p.getVisualStyle()),
+                            Map.entry("hashtagStrategy", p.getHashtagStrategy()),
+                            Map.entry("competitorAccounts", p.getCompetitorAccounts()),
+                            Map.entry("contentTypes", p.getContentTypes()),
+                            Map.entry("languagePreference", p.getLanguagePreference()),
+                            Map.entry("additionalNotes", p.getAdditionalNotes())
+                    );
+
                 }
             }
 
@@ -76,6 +119,8 @@ public class WhatsAppWebhookController {
             System.out.println("📞 Numéro        : " + phoneNumber);
             System.out.println("✅ User existe   : " + userExist);
             System.out.println("🔐 Token valide  : " + tokenValide);
+            System.out.println("📊 Activité      : " + (activityData != null ? "✅" : "❌"));
+            System.out.println("🎯 Préférence    : " + (preferenceData != null ? "✅" : "❌"));
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -84,7 +129,9 @@ public class WhatsAppWebhookController {
                     "phone", phoneNumber,
                     "message", message,
                     "user_exist", userExist,
-                    "token_valide", tokenValide
+                    "token_valide", tokenValide,
+                    "activity", activityData,
+                    "preference", preferenceData
             );
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);

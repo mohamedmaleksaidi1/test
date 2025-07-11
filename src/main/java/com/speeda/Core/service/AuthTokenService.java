@@ -19,9 +19,9 @@ public class AuthTokenService implements IAuthTokenService {
 
     @Value("${jwt.refreshExpirationMs}")
     private Long refreshTokenDurationMs;
-
-    private final AuthTokenRepository authTokenRepository;
     private final UserRepository userRepository;
+    private final AuthTokenRepository authTokenRepository;
+
     @Override
     @Transactional
     public AuthToken createOrUpdateAuthToken(User user, String accessToken) {

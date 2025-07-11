@@ -48,4 +48,7 @@ public class PreferenceController {
     public ResponseEntity<PreferenceDTO> getByCurrentUser() {
         return ResponseEntity.ok(preferenceService.getPreferenceByCurrentUser());
     }
+
+
+
 }
