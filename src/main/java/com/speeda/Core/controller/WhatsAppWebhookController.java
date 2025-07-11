@@ -29,7 +29,6 @@ public class WhatsAppWebhookController {
     private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
 
     private final RestTemplate restTemplate = new RestTemplate();
-
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final ActivityRepository activityRepository;
@@ -58,8 +57,8 @@ public class WhatsAppWebhookController {
 
             boolean userExist = false;
             boolean tokenValide = false;
-            Map<String, Object> activityData = null;
-            Map<String, Object> preferenceData = null;
+            boolean activityExist = false;
+            boolean preferenceExist = false;
 
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
             if (userOpt.isPresent()) {
@@ -74,50 +73,19 @@ public class WhatsAppWebhookController {
                     tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
                 }
 
-                // Récupération activité
-                Optional<Activity> activityOpt = activityRepository.findByUser(user);
-                if (activityOpt.isPresent()) {
-                    Activity a = activityOpt.get();
-                    Map<String, Object> temp = new HashMap<>();
-                    if (a.getBusinessName() != null) temp.put("businessName", a.getBusinessName());
-                    if (a.getIndustry() != null) temp.put("industry", a.getIndustry());
-                    if (a.getBusinessDescription() != null) temp.put("businessDescription", a.getBusinessDescription());
-                    if (a.getLocation() != null) temp.put("location", a.getLocation());
-                    if (a.getOpeningHours() != null) temp.put("openingHours", a.getOpeningHours());
-                    if (a.getAudienceTarget() != null) temp.put("audienceTarget", a.getAudienceTarget());
-                    if (a.getBusinessSize() != null) temp.put("businessSize", a.getBusinessSize());
-                    if (a.getUniqueSellingPoint() != null) temp.put("uniqueSellingPoint", a.getUniqueSellingPoint());
-                    if (a.getYearFounded() != null) temp.put("yearFounded", a.getYearFounded());
-                    if (a.getCertifications() != null) temp.put("certifications", a.getCertifications());
-                    activityData = temp.isEmpty() ? null : temp;
-                }
+                // Vérification activité
+                activityExist = activityRepository.findByUser(user).isPresent();
 
-                // Récupération préférence
-                Optional<Preference> prefOpt = preferenceRepository.findByUser(user);
-                if (prefOpt.isPresent()) {
-                    Preference p = prefOpt.get();
-                    Map<String, Object> temp = new HashMap<>();
-                    if (p.getToneOfVoice() != null) temp.put("toneOfVoice", p.getToneOfVoice());
-                    if (p.getSocialMediaGoals() != null) temp.put("socialMediaGoals", p.getSocialMediaGoals());
-                    if (p.getPreferredPlatforms() != null) temp.put("preferredPlatforms", p.getPreferredPlatforms());
-                    if (p.getPostingFrequency() != null) temp.put("postingFrequency", p.getPostingFrequency());
-                    if (p.getPreferredPostTime() != null) temp.put("preferredPostTime", p.getPreferredPostTime());
-                    if (p.getVisualStyle() != null) temp.put("visualStyle", p.getVisualStyle());
-                    if (p.getHashtagStrategy() != null) temp.put("hashtagStrategy", p.getHashtagStrategy());
-                    if (p.getCompetitorAccounts() != null) temp.put("competitorAccounts", p.getCompetitorAccounts());
-                    if (p.getContentTypes() != null) temp.put("contentTypes", p.getContentTypes());
-                    if (p.getLanguagePreference() != null) temp.put("languagePreference", p.getLanguagePreference());
-                    if (p.getAdditionalNotes() != null) temp.put("additionalNotes", p.getAdditionalNotes());
-                    preferenceData = temp.isEmpty() ? null : temp;
-                }
+                // Vérification préférence
+                preferenceExist = preferenceRepository.findByUser(user).isPresent();
             }
 
-            System.out.println("📥 Message       : " + message);
-            System.out.println("📞 Numéro        : " + phoneNumber);
-            System.out.println("✅ User existe   : " + userExist);
-            System.out.println("🔐 Token valide  : " + tokenValide);
-            System.out.println("📊 Activité      : " + (activityData != null ? "✅" : "❌"));
-            System.out.println("🎯 Préférence    : " + (preferenceData != null ? "✅" : "❌"));
+            System.out.println("📥 Message           : " + message);
+            System.out.println("📞 Numéro            : " + phoneNumber);
+            System.out.println("✅ User existe       : " + userExist);
+            System.out.println("🔐 Token valide      : " + tokenValide);
+            System.out.println("📊 Activité existe   : " + activityExist);
+            System.out.println("🎯 Préférence existe : " + preferenceExist);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -127,8 +95,8 @@ public class WhatsAppWebhookController {
             toSend.put("message", message);
             toSend.put("user_exist", userExist);
             toSend.put("token_valide", tokenValide);
-            toSend.put("activity", activityData);
-            toSend.put("preference", preferenceData);
+            toSend.put("activity_exist", activityExist);
+            toSend.put("preference_exist", preferenceExist);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
