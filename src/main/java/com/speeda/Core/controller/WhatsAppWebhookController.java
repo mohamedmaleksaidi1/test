@@ -18,10 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+
 @RestController
 @RequestMapping("/webhook")
 @RequiredArgsConstructor
@@ -80,37 +78,37 @@ public class WhatsAppWebhookController {
                 Optional<Activity> activityOpt = activityRepository.findByUser(user);
                 if (activityOpt.isPresent()) {
                     Activity a = activityOpt.get();
-                    activityData = Map.ofEntries(
-                            Map.entry("businessName", a.getBusinessName()),
-                            Map.entry("industry", a.getIndustry()),
-                            Map.entry("businessDescription", a.getBusinessDescription()),
-                            Map.entry("location", a.getLocation()),
-                            Map.entry("openingHours", a.getOpeningHours()),
-                            Map.entry("audienceTarget", a.getAudienceTarget()),
-                            Map.entry("businessSize", a.getBusinessSize()),
-                            Map.entry("uniqueSellingPoint", a.getUniqueSellingPoint()),
-                            Map.entry("yearFounded", a.getYearFounded()),
-                            Map.entry("certifications", a.getCertifications())
-                    );
+                    Map<String, Object> temp = new HashMap<>();
+                    if (a.getBusinessName() != null) temp.put("businessName", a.getBusinessName());
+                    if (a.getIndustry() != null) temp.put("industry", a.getIndustry());
+                    if (a.getBusinessDescription() != null) temp.put("businessDescription", a.getBusinessDescription());
+                    if (a.getLocation() != null) temp.put("location", a.getLocation());
+                    if (a.getOpeningHours() != null) temp.put("openingHours", a.getOpeningHours());
+                    if (a.getAudienceTarget() != null) temp.put("audienceTarget", a.getAudienceTarget());
+                    if (a.getBusinessSize() != null) temp.put("businessSize", a.getBusinessSize());
+                    if (a.getUniqueSellingPoint() != null) temp.put("uniqueSellingPoint", a.getUniqueSellingPoint());
+                    if (a.getYearFounded() != null) temp.put("yearFounded", a.getYearFounded());
+                    if (a.getCertifications() != null) temp.put("certifications", a.getCertifications());
+                    activityData = temp.isEmpty() ? null : temp;
                 }
 
                 // Récupération préférence
                 Optional<Preference> prefOpt = preferenceRepository.findByUser(user);
                 if (prefOpt.isPresent()) {
                     Preference p = prefOpt.get();
-                    preferenceData = Map.ofEntries(
-                            Map.entry("toneOfVoice", p.getToneOfVoice()),
-                            Map.entry("socialMediaGoals", p.getSocialMediaGoals()),
-                            Map.entry("preferredPlatforms", p.getPreferredPlatforms()),
-                            Map.entry("postingFrequency", p.getPostingFrequency()),
-                            Map.entry("preferredPostTime", p.getPreferredPostTime()),
-                            Map.entry("visualStyle", p.getVisualStyle()),
-                            Map.entry("hashtagStrategy", p.getHashtagStrategy()),
-                            Map.entry("competitorAccounts", p.getCompetitorAccounts()),
-                            Map.entry("contentTypes", p.getContentTypes()),
-                            Map.entry("languagePreference", p.getLanguagePreference()),
-                            Map.entry("additionalNotes", p.getAdditionalNotes())
-                    );
+                    Map<String, Object> temp = new HashMap<>();
+                    if (p.getToneOfVoice() != null) temp.put("toneOfVoice", p.getToneOfVoice());
+                    if (p.getSocialMediaGoals() != null) temp.put("socialMediaGoals", p.getSocialMediaGoals());
+                    if (p.getPreferredPlatforms() != null) temp.put("preferredPlatforms", p.getPreferredPlatforms());
+                    if (p.getPostingFrequency() != null) temp.put("postingFrequency", p.getPostingFrequency());
+                    if (p.getPreferredPostTime() != null) temp.put("preferredPostTime", p.getPreferredPostTime());
+                    if (p.getVisualStyle() != null) temp.put("visualStyle", p.getVisualStyle());
+                    if (p.getHashtagStrategy() != null) temp.put("hashtagStrategy", p.getHashtagStrategy());
+                    if (p.getCompetitorAccounts() != null) temp.put("competitorAccounts", p.getCompetitorAccounts());
+                    if (p.getContentTypes() != null) temp.put("contentTypes", p.getContentTypes());
+                    if (p.getLanguagePreference() != null) temp.put("languagePreference", p.getLanguagePreference());
+                    if (p.getAdditionalNotes() != null) temp.put("additionalNotes", p.getAdditionalNotes());
+                    preferenceData = temp.isEmpty() ? null : temp;
                 }
             }
 
@@ -124,14 +122,13 @@ public class WhatsAppWebhookController {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            Map<String, Object> toSend = Map.of(
-                    "phone", phoneNumber,
-                    "message", message,
-                    "user_exist", userExist,
-                    "token_valide", tokenValide,
-                    "activity", activityData,
-                    "preference", preferenceData
-            );
+            Map<String, Object> toSend = new HashMap<>();
+            toSend.put("phone", phoneNumber);
+            toSend.put("message", message);
+            toSend.put("user_exist", userExist);
+            toSend.put("token_valide", tokenValide);
+            toSend.put("activity", activityData);
+            toSend.put("preference", preferenceData);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
