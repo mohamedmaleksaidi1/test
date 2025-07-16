@@ -2,7 +2,6 @@ package com.speeda.Core.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 @Entity
 @Table(name = "preferences")
 @Data
@@ -10,21 +9,34 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Preference {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String action;
+
+    @Column(columnDefinition = "TEXT")
+    private String resumer;
+
     private String toneOfVoice;
-    private String socialMediaGoals;
+
+    @Column(columnDefinition = "TEXT")
     private String preferredPlatforms;
-    private String postingFrequency;
-    private String preferredPostTime;
-    private String visualStyle;
-    private String hashtagStrategy;
-    private String competitorAccounts;
-    private String contentTypes;
+
+    @Column(columnDefinition = "TEXT")
+    private String socialMediaGoals;
+
     private String languagePreference;
-    private String additionalNotes;
+
+    @Column(columnDefinition = "TEXT")
+    private String other;
+
+    @Column(columnDefinition = "TEXT")
+    private String text;
+
     @OneToOne
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 }
+
