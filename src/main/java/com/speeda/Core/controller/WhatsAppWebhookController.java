@@ -54,6 +54,7 @@ public class WhatsAppWebhookController {
             boolean tokenValide = false;
             boolean activityExist = false;
             boolean preferenceExist = false;
+            String accessToken = null;
 
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
 
@@ -75,14 +76,15 @@ public class WhatsAppWebhookController {
 
             if (lastToken.isPresent()) {
                 tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
+                accessToken = lastToken.get().getAccessToken();  
             }
 
             activityExist = activityRepository.findByUser(user).isPresent();
             preferenceExist = preferenceRepository.findByUser(user).isPresent();
-
             System.out.println("📥 Message           : " + message);
             System.out.println("📞 Numéro            : " + phoneNumber);
             System.out.println("🔐 Token valide      : " + tokenValide);
+            System.out.println("🔑 Access Token      : " + accessToken);
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
             System.out.println("🏷️ Statut utilisateur : " + user.getStatus().name());
@@ -94,6 +96,7 @@ public class WhatsAppWebhookController {
             toSend.put("phone", phoneNumber);
             toSend.put("message", message);
             toSend.put("token_valide", tokenValide);
+            toSend.put("access_token", accessToken); // Ajouté dans le JSON envoyé
             toSend.put("activity_exist", activityExist);
             toSend.put("preference_exist", preferenceExist);
             toSend.put("status", user.getStatus().name());
@@ -105,7 +108,6 @@ public class WhatsAppWebhookController {
             e.printStackTrace();
         }
     }
-
 
 
 
