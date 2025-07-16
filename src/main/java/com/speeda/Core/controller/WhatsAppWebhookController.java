@@ -19,21 +19,17 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.util.*;
-
 @RestController
 @RequestMapping("/webhook")
 @RequiredArgsConstructor
 public class WhatsAppWebhookController {
-
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
     private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
-
     private final RestTemplate restTemplate = new RestTemplate();
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final ActivityRepository activityRepository;
     private final PreferenceRepository preferenceRepository;
-
     @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
             @RequestParam("hub.mode") String mode,
@@ -43,7 +39,6 @@ public class WhatsAppWebhookController {
                 ? ResponseEntity.ok(challenge)
                 : ResponseEntity.status(403).body("Verify token incorrect !");
     }
-
     @PostMapping("/whatsapp")
     public void receiveWhatsAppEvent(@RequestBody Map<String, Object> payload) {
         try {
@@ -54,57 +49,61 @@ public class WhatsAppWebhookController {
                 System.out.println("❌ Données manquantes");
                 return;
             }
-
-            boolean userExist = false;
             boolean tokenValide = false;
             boolean activityExist = false;
             boolean preferenceExist = false;
-
+            String step1Valider = null;
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
-            if (userOpt.isPresent()) {
-                userExist = true;
-                User user = userOpt.get();
+            if (userOpt.isEmpty()) {
+                User newUser = new User();
+                newUser.setPhoneNumber(phoneNumber);
+                userRepository.save(newUser);
+                System.out.println("👤 Nouvel utilisateur enregistré avec le numéro : " + phoneNumber);
+                userOpt = Optional.of(newUser);
+            }
 
-                // Vérification du token
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
                 Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
                         .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
                         .findFirst();
                 if (lastToken.isPresent()) {
                     tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
                 }
-
-                // Vérification activité
                 activityExist = activityRepository.findByUser(user).isPresent();
-
-                // Vérification préférence
                 preferenceExist = preferenceRepository.findByUser(user).isPresent();
+                if (activityExist && preferenceExist) {
+                    step1Valider = "go";
+                }
             }
 
+            // Logs
             System.out.println("📥 Message           : " + message);
             System.out.println("📞 Numéro            : " + phoneNumber);
-            System.out.println("✅ User existe       : " + userExist);
             System.out.println("🔐 Token valide      : " + tokenValide);
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
-
+            System.out.println("🚦 step_1_valider    : " + (step1Valider != null ? step1Valider : "non"));
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-
             Map<String, Object> toSend = new HashMap<>();
             toSend.put("phone", phoneNumber);
             toSend.put("message", message);
-            toSend.put("user_exist", userExist);
             toSend.put("token_valide", tokenValide);
             toSend.put("activity_exist", activityExist);
             toSend.put("preference_exist", preferenceExist);
 
+            if (step1Valider != null) {
+                toSend.put("step_1_valider", step1Valider);
+            }
+
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     private String extractPhoneNumber(Map<String, Object> payload) {
         try {
@@ -120,7 +119,6 @@ public class WhatsAppWebhookController {
             return null;
         }
     }
-
     private String extractMessageBody(Map<String, Object> payload) {
         try {
             List<?> entry = (List<?>) payload.get("entry");
