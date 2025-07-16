@@ -1,4 +1,5 @@
 package com.speeda.Core.model;
+import com.speeda.Core.model.Enum.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 @Entity
@@ -15,4 +16,7 @@ public class User {
     private String username;
     private String password;
     private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 }

@@ -2,6 +2,7 @@ package com.speeda.Core.controller;
 
 import com.speeda.Core.model.Activity;
 import com.speeda.Core.model.AuthToken;
+import com.speeda.Core.model.Enum.UserStatus;
 import com.speeda.Core.model.Preference;
 import com.speeda.Core.model.User;
 import com.speeda.Core.repository.ActivityRepository;
@@ -49,60 +50,63 @@ public class WhatsAppWebhookController {
                 System.out.println("❌ Données manquantes");
                 return;
             }
+
             boolean tokenValide = false;
             boolean activityExist = false;
             boolean preferenceExist = false;
-            String step1Valider = null;
+
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+
             if (userOpt.isEmpty()) {
-                User newUser = new User();
-                newUser.setPhoneNumber(phoneNumber);
+                User newUser = User.builder()
+                        .phoneNumber(phoneNumber)
+                        .status(UserStatus.INACTIF)
+                        .build();
                 userRepository.save(newUser);
                 System.out.println("👤 Nouvel utilisateur enregistré avec le numéro : " + phoneNumber);
                 userOpt = Optional.of(newUser);
             }
 
-            if (userOpt.isPresent()) {
-                User user = userOpt.get();
-                Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
-                        .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
-                        .findFirst();
-                if (lastToken.isPresent()) {
-                    tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
-                }
-                activityExist = activityRepository.findByUser(user).isPresent();
-                preferenceExist = preferenceRepository.findByUser(user).isPresent();
-                if (activityExist && preferenceExist) {
-                    step1Valider = "go";
-                }
+            User user = userOpt.get();
+
+            Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
+                    .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
+                    .findFirst();
+
+            if (lastToken.isPresent()) {
+                tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
             }
 
-            // Logs
+            activityExist = activityRepository.findByUser(user).isPresent();
+            preferenceExist = preferenceRepository.findByUser(user).isPresent();
+
             System.out.println("📥 Message           : " + message);
             System.out.println("📞 Numéro            : " + phoneNumber);
             System.out.println("🔐 Token valide      : " + tokenValide);
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
-            System.out.println("🚦 step_1_valider    : " + (step1Valider != null ? step1Valider : "non"));
+            System.out.println("🏷️ Statut utilisateur : " + user.getStatus().name());
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+
             Map<String, Object> toSend = new HashMap<>();
             toSend.put("phone", phoneNumber);
             toSend.put("message", message);
             toSend.put("token_valide", tokenValide);
             toSend.put("activity_exist", activityExist);
             toSend.put("preference_exist", preferenceExist);
-
-            if (step1Valider != null) {
-                toSend.put("step_1_valider", step1Valider);
-            }
+            toSend.put("status", user.getStatus().name());
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+
 
 
     private String extractPhoneNumber(Map<String, Object> payload) {

@@ -13,7 +13,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        authService.register(request);
+        authService.registerOrUpdateByPhoneNumber(request);
         return ResponseEntity.ok("User registered successfully");
     }
 

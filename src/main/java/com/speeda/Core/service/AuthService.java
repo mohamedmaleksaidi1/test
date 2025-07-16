@@ -1,6 +1,7 @@
 package com.speeda.Core.service;
 import com.speeda.Core.dto.*;
 import com.speeda.Core.model.AuthToken;
+import com.speeda.Core.model.Enum.UserStatus;
 import com.speeda.Core.model.User;
 import com.speeda.Core.repository.UserRepository;
 import com.speeda.Core.security.JwtUtil;
@@ -23,16 +24,30 @@ public class AuthService implements IAuthService {
     private final IAuthTokenService authTokenService; // Remplace IRefreshTokenService
 
     @Override
-    public void register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists");
+    public void registerOrUpdateByPhoneNumber(RegisterRequest request) {
+        Optional<User> optionalUser = userRepository.findByPhoneNumber(request.getPhoneNumber());
+
+        if (optionalUser.isPresent()) {
+            User existingUser = optionalUser.get();
+            if (request.getUsername() != null) {
+                existingUser.setUsername(request.getUsername());
+            }
+            if (request.getPassword() != null) {
+                existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+            userRepository.save(existingUser);
+        } else {
+            User newUser = User.builder()
+                    .username(request.getUsername())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .phoneNumber(request.getPhoneNumber())
+                    .status(UserStatus.ACTIVE)
+                    .build();
+            userRepository.save(newUser);
         }
-        User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .build();
-        userRepository.save(user);
     }
+
+
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -41,6 +56,11 @@ public class AuthService implements IAuthService {
         );
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getStatus() != UserStatus.CONFIRMER) {
+            user.setStatus(UserStatus.CONFIRMER);
+            userRepository.save(user);
+        }
 
         Optional<AuthToken> optionalAuthToken = authTokenService.findByUser(user);
         String accessToken;
@@ -53,6 +73,7 @@ public class AuthService implements IAuthService {
 
         return new AuthResponse(accessToken, authToken.getRefreshToken());
     }
+
 
 
     @Override

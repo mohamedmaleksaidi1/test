@@ -14,12 +14,10 @@ import java.util.List;
 public class WeeklyPlanningController {
 
     private final WeeklyPlanningService weeklyPlanningService;
-
     @GetMapping("/{id}")
     public ResponseEntity<WeeklyPlanningDTO> get(@PathVariable Long id) {
         return ResponseEntity.ok(weeklyPlanningService.getWeeklyPlanning(id));
     }
-
     @GetMapping
     public ResponseEntity<List<WeeklyPlanningDTO>> getAll() {
         return ResponseEntity.ok(weeklyPlanningService.getAllWeeklyPlannings());

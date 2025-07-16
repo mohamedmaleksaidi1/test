@@ -23,7 +23,7 @@ public class Activity {
     private String audienceTarget;
     private String businessSize;
     private String uniqueSellingPoint;
-    private Integer yearFounded;
+    private String yearFounded;
     private String certifications;
     @OneToOne
     @JoinColumn(name = "user_id", unique = true)
