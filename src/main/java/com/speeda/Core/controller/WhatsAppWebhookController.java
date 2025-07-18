@@ -49,6 +49,13 @@ public class WhatsAppWebhookController {
             String message = extractMessageBody(payload);
             String pdfMediaId = extractPdfMediaId(payload);
             String pdfFilename = extractPdfFilename(payload);
+            String voiceMediaId = extractVoiceMediaId(payload);
+            String voiceFilename = extractVoiceFilename(payload);
+
+            // Détermination des flags
+            boolean isText = (message != null);
+            boolean isPdf = (pdfMediaId != null && pdfFilename != null);
+            boolean isVoice = (voiceMediaId != null);
 
             if (phoneNumber == null) {
                 System.out.println("❌ Numéro de téléphone manquant");
@@ -86,13 +93,14 @@ public class WhatsAppWebhookController {
             activityExist = activityRepository.findByUser(user).isPresent();
             preferenceExist = preferenceRepository.findByUser(user).isPresent();
 
-            // Logging
+            // Logging général
             System.out.println("📞 Numéro            : " + phoneNumber);
             System.out.println("✅ User exist        : " + userExist);
             System.out.println("🔐 Token valide      : " + tokenValide);
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
             System.out.println("🏷️ Statut utilisateur : " + user.getStatus().name());
+            System.out.println("📤 Type détecté      : Text=" + isText + " | PDF=" + isPdf + " | Voice=" + isVoice);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -104,18 +112,30 @@ public class WhatsAppWebhookController {
             toSend.put("activity_exist", activityExist);
             toSend.put("preference_exist", preferenceExist);
             toSend.put("status", user.getStatus().name());
+            toSend.put("is_text", isText);
+            toSend.put("is_pdf", isPdf);
+            toSend.put("is_voice", isVoice);
 
             // Cas message texte
-            if (message != null) {
+            if (isText) {
                 toSend.put("message", message);
                 System.out.println("📥 Message           : " + message);
             }
 
             // Cas document PDF
-            if (pdfMediaId != null && pdfFilename != null) {
+            if (isPdf) {
                 toSend.put("pdf_media_id", pdfMediaId);
                 toSend.put("pdf_filename", pdfFilename);
                 System.out.println("📎 PDF reçu : " + pdfFilename + " (ID: " + pdfMediaId + ")");
+            }
+
+            // Cas message vocal
+            if (isVoice) {
+                toSend.put("voice_media_id", voiceMediaId);
+                if (voiceFilename != null) {
+                    toSend.put("voice_filename", voiceFilename);
+                }
+                System.out.println("🎤 Voice reçu : " + voiceFilename + " (ID: " + voiceMediaId + ")");
             }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
@@ -200,5 +220,45 @@ public class WhatsAppWebhookController {
             return null;
         }
     }
-}
 
+    private String extractVoiceMediaId(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("audio".equals(message.get("type"))) {
+                Map<?, ?> audio = (Map<?, ?>) message.get("audio");
+                Boolean voice = (Boolean) audio.get("voice");
+                if (voice != null && voice) {
+                    return (String) audio.get("id");
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractVoiceFilename(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("audio".equals(message.get("type"))) {
+                Map<?, ?> audio = (Map<?, ?>) message.get("audio");
+                return (String) audio.get("filename");
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}
