@@ -25,12 +25,13 @@ import java.util.*;
 @RequiredArgsConstructor
 public class WhatsAppWebhookController {
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
-    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
+    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
     private final RestTemplate restTemplate = new RestTemplate();
     private final UserRepository userRepository;
     private final AuthTokenRepository authTokenRepository;
     private final ActivityRepository activityRepository;
     private final PreferenceRepository preferenceRepository;
+
     @GetMapping("/whatsapp")
     public ResponseEntity<String> verifyWebhook(
             @RequestParam("hub.mode") String mode,
@@ -40,24 +41,26 @@ public class WhatsAppWebhookController {
                 ? ResponseEntity.ok(challenge)
                 : ResponseEntity.status(403).body("Verify token incorrect !");
     }
+
     @PostMapping("/whatsapp")
     public void receiveWhatsAppEvent(@RequestBody Map<String, Object> payload) {
         try {
             String phoneNumber = extractPhoneNumber(payload);
             String message = extractMessageBody(payload);
+            String pdfMediaId = extractPdfMediaId(payload);
+            String pdfFilename = extractPdfFilename(payload);
 
-            if (phoneNumber == null || message == null) {
-                System.out.println("❌ Données manquantes");
+            if (phoneNumber == null) {
+                System.out.println("❌ Numéro de téléphone manquant");
                 return;
             }
 
             boolean tokenValide = false;
             boolean activityExist = false;
             boolean preferenceExist = false;
-            boolean userExist = false; // <-- Ajouté ici
+            boolean userExist = false;
 
             Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
-
             if (userOpt.isEmpty()) {
                 User newUser = User.builder()
                         .phoneNumber(phoneNumber)
@@ -67,10 +70,8 @@ public class WhatsAppWebhookController {
                 System.out.println("👤 Nouvel utilisateur enregistré avec le numéro : " + phoneNumber);
                 userOpt = Optional.of(newUser);
             }
-
             User user = userOpt.get();
 
-            // Logique pour savoir si l'utilisateur existe ET a un mot de passe
             if (user.getPassword() != null && !user.getPassword().isBlank()) {
                 userExist = true;
             }
@@ -78,7 +79,6 @@ public class WhatsAppWebhookController {
             Optional<AuthToken> lastToken = authTokenRepository.findByUser(user).stream()
                     .sorted(Comparator.comparing(AuthToken::getExpiryDate).reversed())
                     .findFirst();
-
             if (lastToken.isPresent()) {
                 tokenValide = lastToken.get().getExpiryDate().isAfter(Instant.now());
             }
@@ -86,7 +86,7 @@ public class WhatsAppWebhookController {
             activityExist = activityRepository.findByUser(user).isPresent();
             preferenceExist = preferenceRepository.findByUser(user).isPresent();
 
-            System.out.println("📥 Message           : " + message);
+            // Logging
             System.out.println("📞 Numéro            : " + phoneNumber);
             System.out.println("✅ User exist        : " + userExist);
             System.out.println("🔐 Token valide      : " + tokenValide);
@@ -99,12 +99,24 @@ public class WhatsAppWebhookController {
 
             Map<String, Object> toSend = new HashMap<>();
             toSend.put("phone", phoneNumber);
-            toSend.put("message", message);
-            toSend.put("user_exist", userExist); // <-- Ajouté ici
+            toSend.put("user_exist", userExist);
             toSend.put("token_valide", tokenValide);
             toSend.put("activity_exist", activityExist);
             toSend.put("preference_exist", preferenceExist);
             toSend.put("status", user.getStatus().name());
+
+            // Cas message texte
+            if (message != null) {
+                toSend.put("message", message);
+                System.out.println("📥 Message           : " + message);
+            }
+
+            // Cas document PDF
+            if (pdfMediaId != null && pdfFilename != null) {
+                toSend.put("pdf_media_id", pdfMediaId);
+                toSend.put("pdf_filename", pdfFilename);
+                System.out.println("📎 PDF reçu : " + pdfFilename + " (ID: " + pdfMediaId + ")");
+            }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
@@ -113,9 +125,6 @@ public class WhatsAppWebhookController {
             e.printStackTrace();
         }
     }
-
-
-
 
     private String extractPhoneNumber(Map<String, Object> payload) {
         try {
@@ -131,6 +140,7 @@ public class WhatsAppWebhookController {
             return null;
         }
     }
+
     private String extractMessageBody(Map<String, Object> payload) {
         try {
             List<?> entry = (List<?>) payload.get("entry");
@@ -140,10 +150,55 @@ public class WhatsAppWebhookController {
             Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
             List<?> messages = (List<?>) value.get("messages");
             Map<?, ?> message = (Map<?, ?>) messages.get(0);
-            Map<?, ?> text = (Map<?, ?>) message.get("text");
-            return (String) text.get("body");
+            if ("text".equals(message.get("type"))) {
+                Map<?, ?> text = (Map<?, ?>) message.get("text");
+                return (String) text.get("body");
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractPdfMediaId(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("document".equals(message.get("type"))) {
+                Map<?, ?> document = (Map<?, ?>) message.get("document");
+                String mimeType = (String) document.get("mime_type");
+                if ("application/pdf".equals(mimeType)) {
+                    return (String) document.get("id");
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractPdfFilename(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("document".equals(message.get("type"))) {
+                Map<?, ?> document = (Map<?, ?>) message.get("document");
+                return (String) document.get("filename");
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }
     }
 }
+
