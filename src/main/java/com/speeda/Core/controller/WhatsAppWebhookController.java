@@ -78,6 +78,7 @@ public class WhatsAppWebhookController {
                 userOpt = Optional.of(newUser);
             }
             User user = userOpt.get();
+            Long userId = user.getId(); // <<<=== ID de l'utilisateur
 
             if (user.getPassword() != null && !user.getPassword().isBlank()) {
                 userExist = true;
@@ -100,12 +101,14 @@ public class WhatsAppWebhookController {
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
             System.out.println("🏷️ Statut utilisateur : " + user.getStatus().name());
+            System.out.println("🆔 User ID           : " + userId);
             System.out.println("📤 Type détecté      : Text=" + isText + " | PDF=" + isPdf + " | Voice=" + isVoice);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> toSend = new HashMap<>();
+            toSend.put("user_id", userId); // <<<=== Envoi de l'ID user !
             toSend.put("phone", phoneNumber);
             toSend.put("user_exist", userExist);
             toSend.put("token_valide", tokenValide);
