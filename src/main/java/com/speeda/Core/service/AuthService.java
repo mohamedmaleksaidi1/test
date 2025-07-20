@@ -21,31 +21,49 @@ public class AuthService implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final IAuthTokenService authTokenService; // Remplace IRefreshTokenService
+    private final IAuthTokenService authTokenService;
 
     @Override
-    public void registerOrUpdateByPhoneNumber(RegisterRequest request) {
+    public AuthResponse registerAndAuthenticate(RegisterRequest request) {
         Optional<User> optionalUser = userRepository.findByPhoneNumber(request.getPhoneNumber());
+        User user;
 
         if (optionalUser.isPresent()) {
-            User existingUser = optionalUser.get();
+            user = optionalUser.get();
             if (request.getUsername() != null) {
-                existingUser.setUsername(request.getUsername());
+                user.setUsername(request.getUsername());
             }
             if (request.getPassword() != null) {
-                existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
             }
-            userRepository.save(existingUser);
+            userRepository.save(user);
         } else {
-            User newUser = User.builder()
+            user = User.builder()
                     .username(request.getUsername())
                     .password(passwordEncoder.encode(request.getPassword()))
                     .phoneNumber(request.getPhoneNumber())
                     .status(UserStatus.ACTIVE)
                     .build();
-            userRepository.save(newUser);
+            userRepository.save(user);
         }
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
+        );
+        if (user.getStatus() != UserStatus.CONFIRMER) {
+            user.setStatus(UserStatus.CONFIRMER);
+            userRepository.save(user);
+        }
+        Optional<AuthToken> optionalAuthToken = authTokenService.findByUser(user);
+        String accessToken;
+        if (optionalAuthToken.isPresent()) {
+            accessToken = optionalAuthToken.get().getAccessToken();
+        } else {
+            accessToken = jwtUtil.generateToken(user.getUsername());
+        }
+        AuthToken authToken = authTokenService.createOrUpdateAuthToken(user, accessToken);
+        return new AuthResponse(accessToken, authToken.getRefreshToken());
     }
+
 
 
 

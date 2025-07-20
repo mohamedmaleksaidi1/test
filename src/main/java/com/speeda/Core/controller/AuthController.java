@@ -13,9 +13,10 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        authService.registerOrUpdateByPhoneNumber(request);
-        return ResponseEntity.ok("User registered successfully");
+        AuthResponse authResponse = authService.registerAndAuthenticate(request);
+        return ResponseEntity.ok(authResponse);
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
