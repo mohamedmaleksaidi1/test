@@ -120,7 +120,6 @@ public class WhatsAppWebhookController {
             toSend.put("is_voice", isVoice);
             toSend.put("username", user.getUsername());
 
-            // Cas message texte
             if (isText) {
                 toSend.put("message", message);
                 System.out.println("📥 Message           : " + message);

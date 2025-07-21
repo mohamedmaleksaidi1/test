@@ -88,7 +88,9 @@ public class AuthService implements IAuthService {
             toSend.put("user_exist", true);
             toSend.put("token_valide", true); // à adapter selon ta logique
             toSend.put("status", user.getStatus().name());
-
+            toSend.put("username", user.getUsername());
+            // ICI ajout du booléen pour signaler que ça provient du register REST API :
+            toSend.put("restapiRegister", true);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
