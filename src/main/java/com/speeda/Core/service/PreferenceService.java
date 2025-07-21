@@ -19,7 +19,6 @@ public class PreferenceService implements IPreferenceService {
     private final UserRepository userRepository;
     private final PreferenceMapper preferenceMapper;
     private final UserContext userContext;
-
     @Override
     public PreferenceDTO createPreference(PreferenceDTO dto) {
         Long userId = userContext.getCurrentUserId();
@@ -29,9 +28,6 @@ public class PreferenceService implements IPreferenceService {
         preference.setUser(user);
         return preferenceMapper.toDto(preferenceRepository.save(preference));
     }
-
-
-
     @Override
     public PreferenceDTO updatePreference(Long id, PreferenceDTO dto) {
         Long userId = userContext.getCurrentUserId();

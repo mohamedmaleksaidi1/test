@@ -34,7 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String header = request.getHeader("Authorization");
         String refreshToken = null;
-        String username = null;
+        String email = null;
 
         if (header != null && header.startsWith("Bearer ")) {
             refreshToken = header.substring(7);
@@ -45,10 +45,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (optAuthToken.isPresent() && !authTokenService.isRefreshTokenExpired(optAuthToken.get())) {
                 var authToken = optAuthToken.get();
                 var user = authToken.getUser();
-                username = user.getUsername();
+                email = user.getEmail();
 
                 UserDetails userDetails = org.springframework.security.core.userdetails.User
-                        .withUsername(user.getUsername())
+                        .withUsername(user.getEmail())
                         .password(user.getPassword())
                         .authorities("USER")
                         .build();

@@ -98,6 +98,8 @@ public class WhatsAppWebhookController {
             System.out.println("🔐 Token valide      : " + tokenValide);
             System.out.println("📊 Activité existe   : " + activityExist);
             System.out.println("🎯 Préférence existe : " + preferenceExist);
+            System.out.println("🎯 username : " + user.getUsername());
+
             System.out.println("🏷️ Statut utilisateur : " + user.getStatus().name());
             System.out.println("🆔 User ID           : " + userId);
             System.out.println("📤 Type détecté      : Text=" + isText + " | PDF=" + isPdf + " | Voice=" + isVoice);
@@ -116,6 +118,7 @@ public class WhatsAppWebhookController {
             toSend.put("is_text", isText);
             toSend.put("is_pdf", isPdf);
             toSend.put("is_voice", isVoice);
+            toSend.put("username", user.getUsername());
 
             // Cas message texte
             if (isText) {

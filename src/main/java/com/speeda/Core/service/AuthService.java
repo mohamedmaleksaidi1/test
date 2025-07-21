@@ -22,7 +22,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class AuthService implements IAuthService {
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -78,7 +77,6 @@ public class AuthService implements IAuthService {
 
         return new AuthResponse(accessToken, authToken.getRefreshToken());
     }
-
     private void triggerWebhook(User user) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -104,9 +102,9 @@ public class AuthService implements IAuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByUsername(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getStatus() != UserStatus.CONFIRMER) {

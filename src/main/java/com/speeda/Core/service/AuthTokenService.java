@@ -31,13 +31,10 @@ public class AuthTokenService implements IAuthTokenService {
 
         AuthToken authToken;
         if (optionalAuthToken.isPresent()) {
-            // On update SEULEMENT le refresh token et la date d'expiration
             authToken = optionalAuthToken.get();
             authToken.setRefreshToken(refreshToken);
             authToken.setExpiryDate(expiryDate);
-            // accessToken NE BOUGE PAS !
         } else {
-            // Premier login : on stocke tout
             authToken = AuthToken.builder()
                     .user(user)
                     .accessToken(accessToken) // généré uniquement au premier login
