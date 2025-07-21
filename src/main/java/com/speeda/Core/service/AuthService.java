@@ -6,11 +6,17 @@ import com.speeda.Core.model.User;
 import com.speeda.Core.repository.UserRepository;
 import com.speeda.Core.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -22,7 +28,9 @@ public class AuthService implements IAuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final IAuthTokenService authTokenService;
-
+    private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
+    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
+    private final RestTemplate restTemplate = new RestTemplate();
     @Override
     public AuthResponse registerAndAuthenticate(RegisterRequest request) {
         Optional<User> optionalUser = userRepository.findByPhoneNumber(request.getPhoneNumber());
@@ -46,13 +54,16 @@ public class AuthService implements IAuthService {
                     .build();
             userRepository.save(user);
         }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
         );
+
         if (user.getStatus() != UserStatus.CONFIRMER) {
             user.setStatus(UserStatus.CONFIRMER);
             userRepository.save(user);
         }
+
         Optional<AuthToken> optionalAuthToken = authTokenService.findByUser(user);
         String accessToken;
         if (optionalAuthToken.isPresent()) {
@@ -61,10 +72,33 @@ public class AuthService implements IAuthService {
             accessToken = jwtUtil.generateToken(user.getUsername());
         }
         AuthToken authToken = authTokenService.createOrUpdateAuthToken(user, accessToken);
+
+        // Déclenche le webhook (avec la variable statique N8N_WEBHOOK_URL)
+        triggerWebhook(user);
+
         return new AuthResponse(accessToken, authToken.getRefreshToken());
     }
 
+    private void triggerWebhook(User user) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
+            Map<String, Object> toSend = new HashMap<>();
+            toSend.put("user_id", user.getId());
+            toSend.put("phone", user.getPhoneNumber());
+            toSend.put("user_exist", true);
+            toSend.put("token_valide", true); // à adapter selon ta logique
+            toSend.put("status", user.getStatus().name());
+
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
+            restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 
     @Override

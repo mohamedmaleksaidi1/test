@@ -51,8 +51,6 @@ public class WhatsAppWebhookController {
             String pdfFilename = extractPdfFilename(payload);
             String voiceMediaId = extractVoiceMediaId(payload);
             String voiceFilename = extractVoiceFilename(payload);
-
-            // Détermination des flags
             boolean isText = (message != null);
             boolean isPdf = (pdfMediaId != null && pdfFilename != null);
             boolean isVoice = (voiceMediaId != null);
