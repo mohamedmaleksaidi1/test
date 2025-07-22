@@ -28,7 +28,7 @@ public class AuthService implements IAuthService {
     private final JwtUtil jwtUtil;
     private final IAuthTokenService authTokenService;
     private static final String VERIFY_TOKEN = "whatsappWebhookToken2024";
-    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
+    private static final String N8N_WEBHOOK_URL = "https://n8n.speeda.ai/webhook-test/e86f9292-10ec-4025-87f6-e46f9dcd9cce";
     private final RestTemplate restTemplate = new RestTemplate();
     @Override
     public AuthResponse registerAndAuthenticate(RegisterRequest request) {
