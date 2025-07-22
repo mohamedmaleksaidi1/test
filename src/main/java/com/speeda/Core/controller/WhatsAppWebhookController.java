@@ -140,6 +140,20 @@ public class WhatsAppWebhookController {
                 }
                 System.out.println("🎤 Voice reçu : " + voiceFilename + " (ID: " + voiceMediaId + ")");
             }
+            String imageMediaId = extractImageMediaId(payload);
+            String imageCaption = extractImageCaption(payload);
+            boolean isImage = (imageMediaId != null);
+
+            toSend.put("is_image", isImage);
+
+            if (isImage) {
+                toSend.put("image_media_id", imageMediaId);
+                if (imageCaption != null) {
+                    toSend.put("image_caption", imageCaption);
+                }
+                System.out.println("🖼️ Image reçue : " + imageMediaId + " | Caption: " + imageCaption);
+            }
+
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(toSend, headers);
             restTemplate.postForEntity(N8N_WEBHOOK_URL, entity, Map.class);
@@ -264,4 +278,42 @@ public class WhatsAppWebhookController {
             return null;
         }
     }
+    private String extractImageMediaId(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("image".equals(message.get("type"))) {
+                Map<?, ?> image = (Map<?, ?>) message.get("image");
+                return (String) image.get("id");
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String extractImageCaption(Map<String, Object> payload) {
+        try {
+            List<?> entry = (List<?>) payload.get("entry");
+            Map<?, ?> entryObj = (Map<?, ?>) entry.get(0);
+            List<?> changes = (List<?>) entryObj.get("changes");
+            Map<?, ?> changeObj = (Map<?, ?>) changes.get(0);
+            Map<?, ?> value = (Map<?, ?>) changeObj.get("value");
+            List<?> messages = (List<?>) value.get("messages");
+            Map<?, ?> message = (Map<?, ?>) messages.get(0);
+            if ("image".equals(message.get("type"))) {
+                Map<?, ?> image = (Map<?, ?>) message.get("image");
+                return (String) image.get("caption");
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
 }
